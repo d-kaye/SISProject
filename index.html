@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang ="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Spaces & Socio-Economic Factors</title>
+    <!-- leaflet css-->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+    <style>
+        body {
+            margin:0;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        #map1, #map2 { float: left; height: 100vh; width:50%; }
+
+        .map-title {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        z-index: 1000;
+    }
+    .map1-title {
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 0 5px #ffffff4d;
+    }
+    .map2-title {
+        background-color: #ffffff;
+        color: #000000;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgb(255, 255, 255);
+    }
+    .divider {
+        width: 2;
+        height: 100vh;
+        border-left: 2px solid #000000;
+        position: absolute;
+        left: 50%;
+        top: 0;
+        z-index: 999; 
+    }    
+    #map2 #sidebar {
+  height: 310px;
+  width: 300px;
+  position: absolute;
+  bottom: 10px;
+  right: -500px;
+  background-color: white;
+  z-index: 1000;
+  padding: 10px;
+  transition: all 0.5s;
+  border: 1px solid black; /* add a thin black outline */
+  border-radius: 5px; /* round the corners */
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2); /* add a subtle shadow */
+}
+
+#map2 #sidebar.expanded {
+  right: 0;
+}
+
+#map2 #toggle-sidebar {
+  position: absolute;
+  top: 100px;
+  left: 10px;
+  z-index: 1001;
+  padding: 10px;
+  background-color: white;
+  border-radius: 10%;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+#sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  background-color: #f0f0f0;
+  padding: 20px;
+  border-radius: 5px; /* round the corners */
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2); /* add a subtle shadow */
+}
+
+#sidebar button {
+  margin-bottom: 10px;
+}
+
+
+h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+button {
+  background-color: #ffffff;
+  border: none;
+  color: rgb(0, 0, 0);
+  padding: 10px 20px;
+  text-align: left;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #c6c9c6;
+}
+
+.legend h4 {
+  background-color: white;
+  margin: 0 0 0px;
+  padding: 5px;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+#popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+#popup-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+#popup-content h2 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+#popup-content p {
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+#popup-content button {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+#popup-content button:hover {
+  background-color: #555;
+}
+
+        
+    </style>
+</head>
+<body>
+    <div id="map1">
+        <div class="map-title map1-title">Open Spaces</div>
+      </div>
+      <div class="divider"></div>
+      <div id="map2">
+        <div class="map-title map2-title">Select Factor</div>
+        <div id="sidebar">
+            <h2>Map Layers</h2>
+            <button id="layer1">Socio-Economic Index</button>
+            <button id="layer2">Median Personal Income</button>
+            <button id="layer3">Cultural Diversity</button>
+            <button id="layer4">Percentage Unemployed</button>
+          </div>
+          
+          
+        
+          <div id="toggle-sidebar"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOAAAADhCAMAAADmr0l2AAAAgVBMVEX///8AAADw8PDz8/PMzMz6+vqlpaXs7Ozn5+fS0tL5+flgYGBmZmbq6urCwsLk5OTb29tra2vIyMigoKC7u7sqKiqYmJglJSVLS0tQUFCSkpJqamqtra2MjIw1NTVzc3NYWFgZGRl7e3sLCwuFhYUdHR07OztCQkIwMDC0tLRNTU3tILtoAAAKf0lEQVR4nN2da1saMRBGQfFai0i1FqsiaKv1///AFhcJsJlDJplsQt9vfbouezmby8w7Sa/XpQYvFxcPZ53+ZJcavfY/9OOy9JVk0dG8v9LLUemrsdd9f0P3pa/HWKPH/pZ+j0pfk6HOp9u3t9D0vPR1Wened3v/D6dnb9L99fuP+8/p+ZV8e/8Dp8d8ewsdl77GBBGdTm/7OrQ53EGn08/D0tcaowA695nTURCdTjf7xWk4nU5Xe8Qp0Pn0JP/fvnB6diPewvOw1xs+i/+9F5weesedje6aQ+7kI+rnlOg8+TzoZG85BTp/jdcPHM/EA2/r5ZTazu/bB3+Xj6213wc6v5y0Dz/4Ih//rfur3ymic+D/k8Gt+CfVcaqi02lvOCU6D+gP94NToPNWoNOpfk6JzqCX8E3++xo4jabT6fAi8RFlVETb6RNxqjiNuSLbTp+A04tinMJFhdLpVF97GjzuDNXgl3jCApye/5QfuJJOp4o4NWg7fTqopD2FeOdzFJ1ONXBK0fhoOp2Kcxo0Z08Rtaf55/vtTOZKqXQ6AaeZ41L+TGajO8sfgnlUzriUmMm0otOpBKed0OkEnGbJm667QLZlSqcTtKf2edM/8o9Z0+lEnNrm90e/5V8amv7SlgYz8XcNOSU6H8x+RRC0p3MjToHOyanNT5BOgNM/Bue/fJXPf21w/gCN5XxUsl/q6EW+vex0OkE+ap7k67uWT9ytJ/Ir5KPiOT39IZ+1IzqdIG8a+6wf5Nt7sb34MAGnMV8LPLHXQo7d04l4Sc/a3physBZtc6SG8lXpxlPQuxZ2I8N3Ex5NgHF8eZ/updzyBcbSKVNQkE4n6LtCgjYQcknrUw0Fo49dk2GY1NbkzoXx4xtdJk0bKvNXwwxABg3grs95TKNk/zDrRO5G8bUXE3D6/rV9OHR9ldHpBJxud4rgX63ZH3cuNxo3G9TJPFfidBAFb2a+OuhMHleX9gAESO64n5cjG/n1paT6utOhnIv9eIni2E5jkyirM9Gk8QNmIAapvu4kBsHHPSFfNMkWrs6jA2ECO+15B5/PnYdc0jWc+e7kpued+2VIFuXXwHcnM6GNqW/suUtH/m/tVewkqpjbhksatT30RsL/FIudxUiOY1zSKLtI9DNGciTq4xa8H2ejvWhMIYJ70RxxJDt7Jp6JVV0Ki+BCIjVT/t1KlB/dOFAecc8q7hTHcgS3FYWAeFqtkwqtlwYiolUOvMFlIkQhDuUnEufhzam4egvIhtfFaXwlAmQZKwpfpHhKIW9dtIRhTWCHn4VcYmL2JrcMijUoRVGcUxs7PHSKZUvBwQ6vHJCA97VcSRgZjtVdNZ2sUCm4skh4p0ZyY1WC0xyGY3hkVx0HbUzpdKIBQ6ec5rPDy1HxDtOiRGe64bhTa7hP2e3w3VnDvSLDsVVABTjNbS65lO3wBnQ6Aac57UEd2uGLcAp0+nwUiercogc2EVM6nShEZ89pCTu8lGVcyDhZA5PS95zFGrBUkSWnJYs1spUwrKlssUZ2OzcVa0TSeTg8vldMgIDT12ROwbKsofPs/ni8AqrpTWeKx0+cau6mLaBTka68bl5Bw/P5qn9TNBOZOLWhc7Rqot4WL3EdCUVFXobCERs6NxyIk38f1OaJFMMu4DQq+W1D59bUeNByOilW3DXl1KbQrTU1nnqMQIpprBmnp+/y/SnobAdubnu+UyrCLTac2hS6eWNkPW9sUBEWJE4Dn70Nnf6g92NPmFIqwtdQEhZyfVA0p6FTSMm8yE4nRZolhVMbOsWIwwhaZ4UfnUps8S0kvv2l5IThFd69Jh1IVyqOQb6a0AnR6d/NEVDzkpXTzHSuR03ldkzBqbI9tSmrhnT2RtQU4nMKTsGksc0pUGNDZ+ssUEJiw+lD4HE2dPrOIh+usFcEtadEZ/isCOLtwjgRgrsX4fl9uPomHmYw9unFlhrDR2TGaXY6OfYlN902nN7KrZ6i7QSj2s5sEEyrbTiVFE4nLfEYMmGHlIcNpz4p4p3pGVnoFDWcQk+3LUXbCXQqghE29t9QThWVUnYL5oGtwZpTIzq1/iuoq1RUTlKf10iRKwI6o5xJMFLQcCrnTfuqTGaO5RyBCIW7CPKmChdIngU5IeNpwOlTeJ4935KqNjZ1XwHHrCydTiaLDLUJs2HcxLsKNvUgD3ijzfGV4u1DXZWZqxMis4orddEFxXioqyXwIfOjYG0ZW1d8NkCncQUA+B4UnPbG3+6uw60KQGeGRURgkqGYRynU+cL3HZdTlFgSHpb6/WWMDIwTs1YYwSTD8rHCSD937Q1tVWD201Qgkb8qhbaRMuE0aZ8qQaPhQNEQZt0JymgnoIPB0AXpmgt+DX/8GcspjIrLPkaXz8sQ22qoqZhXWU+ul6LSx/DyHbcN6dPin+tvQ9FMZJiAGu21sv4FTf89tNjnZD5Js6Fza3g3arksFIVqYKvU71AOpY+KGvfWU597fDIKGmhHXVXZj1FxWfu7ufE5nRTleEY76trQ6SXKv2iVomQNwtehnEIcXdEm+Hc1uJHWVVME9BI5NaJTuIq5uB6QIiRLZqydnMLw3SIN8g8isbVXhC3BBsRllDABUwQK5JZgsvhveR6rSItAcFFO2tEU2qQtnzU/LU8uFZyS4VpIuxKdJq3cz1X4R34GiiJLCC76EudGdML3v94CQ3BXwSkEF7c5NaITvozt64agmYJTKKra4BR+zSaF7LECCasfLmTDqas7saGTTAB+KxCMd204bepO8tMpW4EgGGHWnmanE61AMMlTJNPJRi8XSChSqjR22mUFgkdjw6kkGzpDrEDyn2v6fWhPfdLQKZ8lMB4EH5HCkgSctqSId1IRUPgMFBqCcE5pR4hNKWJdQKcq1kVNebjxKoxTBZ1AhTqqDp2xTXv6eWHhdFL/E5MXgcG+XXtqQ2dkxoACseGcUp+luDBLOp0glP4ebkCWulZFkN+aTidlaYIg73xTEVYEzpP9ARShD+e0HTVRNOp56HSCCL2C0/FGXOSxBjqdzEsdFMXsRKddOtumWOWzhF+xakluOp1ghKvo90+O59Pv4VhTD2NvtlDEd/L/YhYrEO1am2ERqfRZkV7wRViv+k8RpZxWIGjTTFf9tx93hopmQGaclqDTCSbDiUt9LkVFpJ0sapp5OUyzvH+CYDIcvdzuUgYZcRNlWpLWyNNgIchkxHMKdBbY6crGG7EmKLLplE4nU04LL7Trl+Hi1+DtK7oPm9Hi+rD7TvH908GF9RQYLqmSTqdkTrtdeDZGEFzc7YQE73D6UpdminYLEp1V7YAY6ZWnqGsddDpBLY6UmyY6a9zdEV6Hj1MqLqt030OqOGpxCo+jg4WKYxVcMwYHTnIuo52uoPYUKmcyLfJuKGpPl+EweAiV71fZaEd5Gvx3XTvkgeAVTeWBXS17x4WIOJVUfFc1nWChPa/K7TcWLeC0pUIhiUSRSWNThfZSSxfEpdY0rW1YrRHEpZaqaNIXJYrzL1TVpC9OlI/amw3hWVLe9KnuYbVGvnxmzZuI69X2S1S5vXaKNvNiV/syrNbIzeFzb3lXSp8rFPwHXYOky4cv046D8X8BlXWzeCQXkiMAAAAASUVORK5CYII=" alt="Map Layers" height="15px">  Layers</div>
+          
+          <div id="popup-overlay">
+            <div id="popup-content">
+              <h2>Distribution of Open Spaces with Socio-Economic Data in SA2s Across Greater Melbourne</h2>
+              <p>Explore the maps by selecting a layer from the menu on the right map. Click on a feature to see more information</p>
+              <p style="font-size: small;">(Data sources: ABS Census 2021, Victorian Government - Open Spaces API, Esri Imagery)</p>
+              <p style="font-size: small;"><a class="fOyUs_bGBk fbyHH_bGBk fbyHH_vIby" href="http://creativecommons.org/licenses/by/4.0/"><img src="https://i.creativecommons.org/l/by/4.0/88x31.png" alt="Creative Commons License" style="width: 44px; height: 15px; margin-right: 10px;"></a>This work by Daniel Kaye is licensed under a Creative Commons Attribution 4.0 International License.</p>
+              <button id="popup-dismiss">Dismiss</button>
+            </div>
+          </div>
+          
+          
+        
+          
+          
+      </div>
+      
+    <!-- leaflet js-->
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+    <!-- jquery link-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!--Leaflet geoserver request link-->
+    <script src="http://20.53.252.168:8081/L.Geoserver.js"></script>
+
+    <script>
+    // create map instances
+    var map1 = L.map('map1').setView([-37.8136, 144.963], 9);
+    var map2 = L.map('map2').setView([-37.8136, 144.963], 9);
+
+    // add tile layers
+    //var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+   // attribution: 'Map data &copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+   // maxZoom: 18
+  //  }).addTo(map1);
+    
+  //  var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  //  attribution: 'Map data &copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+//maxZoom: 18
+   // }).addTo(map2);
+   var Esri_WorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+});
+Esri_WorldImagery.addTo(map1);
+    
+var Esri_WorldImagery2 = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+});
+
+Esri_WorldImagery2.addTo(map2);
+
+
+// sync maps on move events
+map1.on('move', function(e) {
+    map2.setView(map1.getCenter(), map1.getZoom(), { animate: false });
+});
+
+map2.on('move', function(e) {
+    map1.setView(map2.getCenter(), map2.getZoom(), { animate: false });
+});
+	
+	// toggle sidebar on click
+	var sidebar = document.getElementById('sidebar');
+	var toggleSidebar = document.getElementById('toggle-sidebar');
+	
+	toggleSidebar.onclick = function() {
+		sidebar.classList.toggle('expanded');
+	};
+
+//wms open spaces
+var wmsLayer = L.Geoserver.wms("http://20.53.252.168:8080/geoserver/SIS/wms", {
+ layers: "SIS:Open_spaces_sa2",
+  style: "SIS:Open_Spaces_WMS",
+});
+
+wmsLayer.addTo(map1);
+
+// Create a legend control
+var legend = L.control({position: 'bottomleft'});
+
+// Define the contents of the legend
+legend.onAdd = function (map) {
+  var div = L.DomUtil.create('div', 'legend');
+  div.innerHTML +=
+    '<h4>% Open Space in SA2s</h4>' + // add legend title
+    '<img src="http://20.53.252.168:8080/geoserver/SIS/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20&LAYER=SIS:Open_spaces_sa2&STYLE=SIS:Open_Spaces_WMS">';
+  return div;
+};
+
+// Add the legend control to the map
+legend.addTo(map1);
+
+
+
+
+var wfsLayer1 = L.Geoserver.wfs("http://20.53.252.168:8080/geoserver/SIS/wfs", {
+            layers: "SIS:Open_spaces_sa212",
+            style: {    
+                color: "white",
+                fillOpacity: "0.2",
+                opacity: "0.7",
+                fillColor: "white",
+            },
+            onEachFeature: function (feature, layer) {
+                layer.bindPopup("<h3 class='popup-title'>" + feature.properties.sa2name2 + "</h3>" +
+    "<table>" +
+    "<tr><td><span style='font-weight:bold'>Open Space (%):</span></td><td>" + feature.properties.percopen + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Total SA2 Population:</span></td><td>" + Number(feature.properties.totalpeop).toLocaleString() + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Median Age:</span></td><td>" + feature.properties.medianage + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Socio-Economic Score:</span></td><td>" + feature.properties.score + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Median Personal income:</span></td><td>" + Number(feature.properties.medianper).toLocaleString() + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Median Rent:</span></td><td>" + Number(feature.properties.medianren).toLocaleString() + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Percentage Unemployed:</span></td><td>" + feature.properties.percumploy + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Not Born in Australia (%):</span></td><td>" + Number(feature.properties.Perct_Non_Born_Aus) + "</td></tr>" +
+    "</table>");
+},            
+});
+
+    wfsLayer1.addTo(map1);
+        
+//map 2 code
+
+var wfsLayer3 = L.Geoserver.wfs("http://20.53.252.168:8080/geoserver/SIS/wfs", {
+            layers: "SIS:Open_spaces_sa212",
+            style: {    
+                color: "white",
+                fillOpacity: "0.2",
+                opacity: "0.7",
+                fillColor: "white",
+            },
+            onEachFeature: function (feature, layer) {
+                layer.bindPopup("<h3 class='popup-title'>" + feature.properties.sa2name2 + "</h3>" +
+    "<table>" +
+    "<tr><td><span style='font-weight:bold'>Open Space (%):</span></td><td>" + feature.properties.percopen + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Total SA2 Population:</span></td><td>" + Number(feature.properties.totalpeop).toLocaleString() + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Median Age:</span></td><td>" + feature.properties.medianage + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Socio-Economic Score:</span></td><td>" + feature.properties.score + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Median Personal income:</span></td><td>" + Number(feature.properties.medianper).toLocaleString() + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Median Rent:</span></td><td>" + Number(feature.properties.medianren).toLocaleString() + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Percentage Unemployed:</span></td><td>" + feature.properties.percumploy + "</td></tr>" +
+    "<tr><td><span style='font-weight:bold'>Not Born in Australia (%):</span></td><td>" + Number(feature.properties.Perct_Non_Born_Aus) + "</td></tr>" +
+    "</table>");
+},            
+});
+
+    wfsLayer3.addTo(map2);
+
+// create the WMS layers Socio-Index
+var layer1 = L.Geoserver.wms("http://20.53.252.168:8080/geoserver/SIS/wms", {
+    layers: "SIS:Socio-Economic_Index",
+    style: "SIS:SocioIndex",
+});
+//create the WMS layer Median Income
+var layer2 = L.Geoserver.wms("http://20.53.252.168:8080/geoserver/SIS/wms", {
+    layers: "SIS:Median_Income",
+    style: "SIS:Median_Income",
+});
+//create the WMS layer Cultural Diversity
+var layer3 = L.Geoserver.wms("http://20.53.252.168:8080/geoserver/SIS/wms", {
+    layers: "SIS:Cultural_Diversity",
+    style: "SIS:Cultural_Diversity",
+});
+
+//create the WMS layer Percent Unemployed
+var layer4 = L.Geoserver.wms("http://20.53.252.168:8080/geoserver/SIS/wms", {
+    layers: "SIS:Percent_Unemployed",
+    style: "SIS:Perct_Unemployed",
+});
+
+//Create a legend Socio-Index:
+var legend2 = L.control({position: 'bottomleft'});
+
+legend2.onAdd = function (map) {
+    this._div = L.DomUtil.create('div', 'info legend');
+    this.update('SIS:Socio-Economic_Index');
+    return this._div;
+};
+
+//Create a legend Median Income:
+var legend3 = L.control({position: 'bottomleft'});
+
+legend3.onAdd = function (map) {
+    this._div = L.DomUtil.create('div', 'info legend');
+    this.update('SIS:Median_Income');
+    return this._div;
+};
+
+//Create a legend Cultural Diversity:
+var legend4 = L.control({position: 'bottomleft'});
+
+legend4.onAdd = function (map) {
+    this._div = L.DomUtil.create('div', 'info legend');
+    this.update('SIS:Cultural_Diversity');
+    return this._div;
+};
+
+//Create a legend % Unemployed:
+var legend5 = L.control({position: 'bottomleft'});
+
+legend5.onAdd = function (map) {
+    this._div = L.DomUtil.create('div', 'info legend');
+    this.update('SIS:Percent_Unemployed');
+    return this._div;
+};
+
+
+// Add the legend control to the map after adding the Socio-Economic Index layer
+layer1.on('add', function() {
+    legend2.addTo(map2);
+});
+
+// Add the legend control to the map after adding the Median Income Layer
+layer2.on('add', function() {
+    legend3.addTo(map2);
+});
+
+// Add the legend control to the map after adding the Cultural Diversity layer
+layer3.on('add', function() {
+    legend4.addTo(map2);
+});
+
+// Add the legend control to the map after adding the % Unemployed
+layer4.on('add', function() {
+    legend5.addTo(map2);
+});
+
+// Update the legend based on the selected layer (Socio-Economic Index)
+legend2.update = function (layer) {
+    if (layer === "SIS:Socio-Economic_Index") {
+        this._div.innerHTML = '<h4>Socio-Economic Index (IRSAD)</h4>' +
+            '<img src="http://20.53.252.168:8080/geoserver/SIS/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20&LAYER=SIS:Socio-Economic_Index&STYLE=SIS:SocioIndex">';
+    } else {
+        this._div.innerHTML = '';
+    }
+};
+
+// Update the legend based on the selected layer (Median Income)
+legend3.update = function (layer) {
+    if (layer === "SIS:Median_Income") {
+        this._div.innerHTML = '<h4>Median Weekly Income ($)</h4>' +
+            '<img src="http://20.53.252.168:8080/geoserver/SIS/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20&LAYER=SIS:Median_Income&STYLE=SIS:Median_Income">';
+    } else {
+        this._div.innerHTML = '';
+    }
+};
+
+// Update the legend based on the selected layer (Cultural Diversity)
+legend4.update = function (layer) {
+    if (layer === "SIS:Cultural_Diversity") {
+        this._div.innerHTML = '<h4>Percentage Non-Australian Born</h4>' +
+            '<img src="http://20.53.252.168:8080/geoserver/SIS/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20&LAYER=SIS:Cultural_Diversity&STYLE=SIS:Cultural_Diversity">';
+    } else {
+        this._div.innerHTML = '';
+    }
+};
+
+// Update the legend based on the selected layer (% Unemployed)
+legend5.update = function (layer) {
+    if (layer === "SIS:Percent_Unemployed") {
+        this._div.innerHTML = '<h4>Percent Unemployed</h4>' +
+            '<img src="http://20.53.252.168:8080/geoserver/SIS/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20&LAYER=SIS:Percent_Unemployed&STYLE=SIS:Perct_Unemployed">';
+    } else {
+        this._div.innerHTML = '';
+    }
+};
+
+// Add event listeners to the buttons
+$('#layer1').on('click', function() {
+    if(map2.hasLayer(layer1)) {
+        map2.removeLayer(layer1);
+        legend2.update('');
+    } else {
+        layer1.addTo(map2).bringToFront();
+        legend2.update('SIS:Socio-Economic_Index');
+        map2.removeLayer(layer2);
+        map2.removeLayer(layer3);
+        map2.removeLayer(layer4);
+        legend3.remove('');
+        legend4.remove('');
+        legend5.remove(''); 
+
+    }
+});
+
+$('#layer2').on('click', function() {
+    if(map2.hasLayer(layer2)) {
+        map2.removeLayer(layer2);
+        legend3.update('');
+    } else {
+        layer2.addTo(map2).bringToFront();
+        legend3.update('SIS:Median_Income');
+        map2.removeLayer(layer3);
+        map2.removeLayer(layer4);
+        map2.removeLayer(layer1);
+        legend2.remove('');
+        legend4.remove('');
+        legend5.remove(''); 
+    }
+});
+
+$('#layer3').on('click', function() {
+  if(map2.hasLayer(layer3)) {
+        map2.removeLayer(layer3);
+        legend4.update('');
+    } else {
+        layer3.addTo(map2).bringToFront();
+        legend4.update('SIS:Cultural_Diversity'); 
+        map2.removeLayer(layer1);
+        map2.removeLayer(layer2);
+        map2.removeLayer(layer4);
+        legend2.remove('');
+        legend3.remove('');
+        legend5.remove(''); 
+      }
+});
+
+$('#layer4').on('click', function() {
+  if(map2.hasLayer(layer4)) {
+        map2.removeLayer(layer4);
+        legend5.update('');
+    } else {
+        layer4.addTo(map2).bringToFront();
+        legend5.update('SIS:Percent_Unemployed');
+        map2.removeLayer(layer1);
+        map2.removeLayer(layer2);
+        map2.removeLayer(layer3);
+        legend2.remove('');
+        legend3.remove('');
+        legend4.remove('');  
+      }
+});
+
+
+// Add an event listener for button clicks
+var buttons = document.querySelectorAll('#sidebar button');
+for (var i = 0; i < buttons.length; i++) {
+  buttons[i].addEventListener('click', function() {
+    
+    // If the button is already selected, deselect it
+    if (this.classList.contains('selected')) {
+      this.classList.remove('selected');
+      document.querySelector('.map2-title').textContent = 'Select Factor';
+    }
+    // Otherwise, select the button and update the title
+    else {
+      // Deselect any other selected button
+      var selectedButton = document.querySelector('.selected');
+      if (selectedButton) {
+        selectedButton.classList.remove('selected');
+      }
+      
+      // Select this button and update the title
+      this.classList.add('selected');
+      document.querySelector('.map2-title').textContent = this.textContent;
+    }
+  });
+}
+
+
+// Wait for page to load
+window.addEventListener('load', function() {
+  // Get the popup overlay and "Dismiss" button
+  var popupOverlay = document.getElementById('popup-overlay');
+  var dismissButton = document.getElementById('popup-dismiss');
+
+  // Show the popup overlay
+  popupOverlay.style.display = 'flex';
+
+  // Add click event listener to "Dismiss" button
+  dismissButton.addEventListener('click', function() {
+    // Hide the popup overlay
+    popupOverlay.style.display = 'none';
+  });
+});
+
+    </script>
+</body>
+</html>
